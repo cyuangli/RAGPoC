@@ -2,3 +2,10 @@ langchain
 langchain-core
 langchain-community
 python-dotenv
+pypdf
+pymupdf
+sentence-transformers
+faiss-cpu
+chromadb
+numpy
+scikit-learn
