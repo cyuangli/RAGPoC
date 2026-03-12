@@ -1,4 +1,5 @@
 import os
+import shutil
 import faiss
 import numpy as np
 import pickle
@@ -12,6 +13,8 @@ class VectorStore:
         os.makedirs(self.persist_dir, exist_ok=True)
         self.index = None
         self.metatdata = []
+        self.faiss_path = os.path.join(self.persist_dir, "faiss.index")
+        self.metadata_path = os.path.join(self.persist_dir, "metadata.pkl")
         self.embedding_model = embedding_model
         self.model = SentenceTransformer(self.embedding_model)
         self.chunk_size = chunk_size
@@ -35,32 +38,44 @@ class VectorStore:
         print("Added vectors to Faiss index.")
 
     def save(self):
-        faiss_path = os.path.join(self.persist_dir, "faiss.index")
-        metadata_path = os.path.join(self.persist_dir, "metadata.pkl")
 
-        faiss.write_index(self.index, faiss_path)
-        with open(metadata_path, "wb") as file:
+        faiss.write_index(self.index, self.faiss_path)
+        with open(self.metadata_path, "wb") as file:
             pickle.dump(self.metatdata, file)
         print("Saved Faiss index and metadata.")
 
+    def delete(self):
+        if os.path.exists(self.persist_dir):
+            try:
+                shutil.rmtree(self.persist_dir)
+                print(f"Deleted vector store directory.")
+            except OSError as e:
+                print(f"Error: {e.strerror}")
+        else:
+            print(f"This vector store's directory has not been initialized.")
+
     def load(self):
-        faiss_path = os.path.join(self.persist_dir, "faiss.index")
-        metadata_path = os.path.join(self.persist_dir, "metadata.pkl")
-        self.index = faiss.read_index(faiss_path)
-        with open(metadata_path, "rb") as file:
-            self.metadata = pickle.load(file)
-        print(f"Loaded Faiss index and metadata from.")
+        try:
+            self.index = faiss.read_index(self.faiss_path)
+            with open(self.metadata_path, "rb") as file:
+                self.metadata = pickle.load(file)
+            print(f"Loaded Faiss index and metadata.")
+        except Exception as e:
+            print("Failed to load Faiss index and metadata.")
     
     def search(self, query_embedding: np.ndarray, k: int = 5) -> List[Any]:
+        if not self.metadata or self.index is None:
+            print("Faiss index and metadata are not loaded.")
+            return None
+        
         D, I = self.index.search(query_embedding, k)
         results = []
 
         for idx, dist in zip(I[0], D[0]):
             metadata = self.metadata[idx] if idx < len(self.metadata) else None
             results.append({"index" : idx, "distance" : dist, "metadata" : metadata})
-
         return results
-
+    
     def query(self, query_text: str, k: int = 5) -> List[Any]:
         print(f"Querying vector store for '{query_text}'")
         query_embeddings = self.model.encode([query_text]).astype("float32")
