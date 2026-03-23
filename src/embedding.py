@@ -15,9 +15,13 @@ class EmbeddingPipeline:
                             separators=["\n\n", "\n", " ", ""]
                         )
         
-    def generate_chunks(self, documents: List[Document]):
-        split_docs = self.text_splitter.split_documents(documents)
+    def generate_chunks(self, documents: List[str]):
+        docs = [Document(page_content=doc) for doc in documents]
+
+        split_docs = self.text_splitter.split_documents(docs)
+
         print(f"Split {len(documents)} documents into {len(split_docs)} chunks")
+
         texts = [split_doc.page_content for split_doc in split_docs]
         return texts
 

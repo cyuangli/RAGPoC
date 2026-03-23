@@ -12,7 +12,7 @@ class VectorStore:
         self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
         self.index = None
-        self.metatdata = []
+        self.metadata = []
         self.faiss_path = os.path.join(self.persist_dir, "faiss.index")
         self.metadata_path = os.path.join(self.persist_dir, "metadata.pkl")
         self.embedding_model = embedding_model
@@ -24,8 +24,13 @@ class VectorStore:
     def build(self, documents: List[Any]):
         embedding_pipeline = EmbeddingPipeline(model_name=self.embedding_model, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
         texts = embedding_pipeline.generate_chunks(documents=documents)
+        parsed_docs = [parse_review(doc) for doc in documents]
+
+        texts = [d["text"] for d in parsed_docs]  # ONLY embed review text
+
         embeddings = embedding_pipeline.generate_embeddings(texts=texts)
-        self.add(np.array(embeddings).astype("float32"), texts)
+
+        self.add(np.array(embeddings).astype("float32"), parsed_docs)
         self.save()
         print("Vector store built and saved.")
     
@@ -33,15 +38,15 @@ class VectorStore:
         dim = embeddings.shape[1]
         if self.index is None:
             self.index = faiss.IndexFlatL2(dim)
+        self.index.add(embeddings) 
         if metadatas:
-            self.metatdata.extend(metadatas)
-        print("Added vectors to Faiss index.")
-
+            self.metadata.extend(metadatas)
+        print(f"Added {embeddings.shape[0]} vectors to Faiss index.")
     def save(self):
 
         faiss.write_index(self.index, self.faiss_path)
         with open(self.metadata_path, "wb") as file:
-            pickle.dump(self.metatdata, file)
+            pickle.dump(self.metadata, file)
         print("Saved Faiss index and metadata.")
 
     def delete(self):
@@ -60,6 +65,8 @@ class VectorStore:
             with open(self.metadata_path, "rb") as file:
                 self.metadata = pickle.load(file)
             print(f"Loaded Faiss index and metadata.")
+            print(f"Number of embeddings in FAISS: {self.index.ntotal}")
+            print(f"Number of metadata entries: {len(self.metadata)}")
         except Exception as e:
             print("Failed to load Faiss index and metadata.")
     
@@ -82,5 +89,17 @@ class VectorStore:
         return self.search(query_embeddings, k)
 
 
-
-
+def parse_review(review: str):
+    try:
+        name, department, text = review.split(":", 2)
+        return {
+            "professor": name.strip(),
+            "department": department.strip(),
+            "text": text.strip()
+        }
+    except:
+        return {
+            "professor": None,
+            "department": None,
+            "text": review
+        }
