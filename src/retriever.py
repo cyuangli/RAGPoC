@@ -10,7 +10,7 @@ load_dotenv()
 
 class RAGRetriever:
 
-    def __init__(self, documents: List[Any], vector_store: VectorStore, llm_model: str = "gemma2-9b-it"):
+    def __init__(self, documents: List[Any], vector_store: VectorStore, llm_model: str = "llama-3.1-8b-instant"):
         self.vector_store = vector_store
         self.vector_store.build(documents=documents)
         self.vector_store.load()

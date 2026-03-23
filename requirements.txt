@@ -9,4 +9,5 @@ sentence-transformers
 faiss-cpu
 chromadb
 numpy
+pandas
 scikit-learn
