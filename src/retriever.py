@@ -32,12 +32,12 @@ class RAGRetriever:
             return "No relevant reviews found."
 
         context = "\n\n".join([
-            f"{m.get('professor', 'Unknown')} ({m.get('department', 'Unknown')}): {m.get('text', '')}"
+            f"{m.get('professor', 'Unknown')} ({m.get('department', 'Unknown'), m.get('class_name', 'Unknown')}): {m.get('text', '')}"
             for m in metadata_list
         ])
 
         prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful assistant that answers questions about professors based on student reviews."),
+            ("system", "You are a helpful assistant that answers questions about professors and classes based on student reviews."),
             ("user", "{context}\n\nQuestion: {query}\nAnswer:")
         ])
 

@@ -23,7 +23,7 @@ class VectorStore:
 
     def build(self, documents: List[Any]):
         embedding_pipeline = EmbeddingPipeline(model_name=self.embedding_model, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
-        texts = embedding_pipeline.generate_chunks(documents=documents)
+        # texts = embedding_pipeline.generate_chunks(documents=documents)
         parsed_docs = [parse_review(doc) for doc in documents]
 
         texts = [d["text"] for d in parsed_docs]  # ONLY embed review text
@@ -65,8 +65,6 @@ class VectorStore:
             with open(self.metadata_path, "rb") as file:
                 self.metadata = pickle.load(file)
             print(f"Loaded Faiss index and metadata.")
-            print(f"Number of embeddings in FAISS: {self.index.ntotal}")
-            print(f"Number of metadata entries: {len(self.metadata)}")
         except Exception as e:
             print("Failed to load Faiss index and metadata.")
     
@@ -91,15 +89,17 @@ class VectorStore:
 
 def parse_review(review: str):
     try:
-        name, department, text = review.split(":", 2)
+        name, department, class_name, text = review.split(":", 2)
         return {
             "professor": name.strip(),
             "department": department.strip(),
+            "class_name": class_name.strip(),
             "text": text.strip()
         }
     except:
         return {
             "professor": None,
             "department": None,
+            "class_name": None,
             "text": review
         }
