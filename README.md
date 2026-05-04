@@ -1,1 +1,1 @@
-# RAGPoC
+# Academic RAG Assistant
